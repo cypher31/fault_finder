@@ -1,6 +1,8 @@
-extends Node
+extends Node2D
 
 var json = "res://data/UTM_json.txt"
+
+var final_coordinates
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -11,9 +13,35 @@ func _ready():
 	var coordinates_reduced = reduce_coordinates(coordinates)
 	
 	var coordinates_sorted = sort_coordinates(coordinates_reduced)
-	
+
+	draw_coordinates(coordinates_sorted)
+
 #	print(coordinates_reduced)
 	pass # Replace with function body.
+
+
+func draw_coordinates(data):
+	var line_array = []
+	
+	for fault in data:
+		var line = Line2D.new()
+		line.set_width(2500)
+		
+		for loc in data[fault]:
+			line.add_point(Vector2(loc[0], loc[1]) * Vector2(1,-1))
+			line_array.append(line)
+			pass
+			
+		self.add_child(line)
+		pass
+		
+	var camera = Camera2D.new()
+	add_child(camera)
+	camera._set_current(true)
+	camera.set_position(Vector2(412914.28, -3860704.37))
+	camera.set_zoom(Vector2(1000,1000))
+	print(camera.get_position())
+	pass
 
 
 func parse_JSON(data):
@@ -40,8 +68,8 @@ func get_coordinates(data):
 		if fault != "_faultModName":
 			if data["OpenSHA"]["FaultModel"][fault].has("ZonePolygon"):
 				for loc in data["OpenSHA"]["FaultModel"][fault]["ZonePolygon"]["LocationList"]["UTMLocation"]:
-					var northing = loc["_Northing"]
-					var easting = loc["_Easting"]
+					var northing = loc["_Northing"].replace(',', '')
+					var easting = loc["_Easting"].replace(',', '')
 					var UTMzone = loc["_UTMzone"]
 					
 					if fault_dict.has(fault):
@@ -52,8 +80,8 @@ func get_coordinates(data):
 						fault_dict[fault].append({"northing" : northing, "easting" : easting, "UTMzone" : UTMzone})
 			else:
 				for loc in data["OpenSHA"]["FaultModel"][fault]["FaultTrace"]["UTMLocation"]:
-					var northing = loc["_Northing"]
-					var easting = loc["_Easting"]
+					var northing = loc["_Northing"].replace(',', '')
+					var easting = loc["_Easting"].replace(',', '')
 					var UTMzone = loc["_UTMzone"]
 					
 					if fault_dict.has(fault):
@@ -97,15 +125,20 @@ func sort_coordinates(data):
 	for fault in data:
 		data[fault].sort_custom(self, "custom_sort")
 		pass
-	return
+	return data
 	
 func custom_sort(a, b):
 	var origin = Vector2(5000000, 0)
 	
 	var ax : float = a[0]
+	var ay : float = a[1]
+	var bx : float = b[0]
+	var by : float = b[1]
 	
-	var aVector2 : Vector2 = Vector2(ax, 0)
 	
-	print(ax)
-#	print(point1, point2)
+	var aVector2 : Vector2 = Vector2(ax, by)
+	var bVector2 : Vector2 = Vector2(bx, by)
+	
+	if aVector2.distance_to(origin) < bVector2.distance_to(origin):
+		return a < b
 	pass
