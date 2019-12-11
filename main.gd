@@ -23,6 +23,8 @@ func _ready():
 	
 	var polygon_coordinates = generate_polygon_data(coordinates_sorted, parsed_json)
 	
+	draw_3d_faults(polygon_coordinates)
+	
 	final_faults = [] # clear all faults - needs to be done somewhere else once out of prototyping
 	pass # Replace with function body.
 
@@ -72,7 +74,7 @@ func draw_coordinates(data):
 	add_child(camera)
 	camera._set_current(true)
 	camera.set_position(Vector2(347834.625, -3780795))
-	camera.set_zoom(Vector2(750,750))
+	camera.set_zoom(Vector2(1000,1000))
 	pass
 
 
@@ -206,15 +208,12 @@ func generate_polygon_data(coord_data, fault_data):
 		var _dip_direction : String  = fault_data["OpenSHA"]["FaultModel"][fault_id]["_dipDirection"]
 		var polygon_data
 		
-		if coord == "i0":
-			polygon_data = calculate_polygon_data(_ave_dip, _ave_lower_depth, _dip_direction, fault_points)
-		
-			poly_dict[coord] = polygon_data
-			print(poly_dict)
+		polygon_data = calculate_polygon_data(_ave_dip, _ave_lower_depth, _dip_direction, fault_points)
+	
+		poly_dict[coord] = polygon_data
 		pass
 		
-	poly_dict["i0"] = temp_dict
-	return
+	return poly_dict
 	
 func calculate_polygon_data(dip, depth, dip_direction, coords):
 	#calculate from the back of the array to the front - this way the coordinates stay in order
@@ -257,3 +256,34 @@ func calculate_polygon_data(dip, depth, dip_direction, coords):
 		pass
 	
 	return poly_dict
+	
+	
+func draw_3d_faults(data):
+	for fault in data:
+		var fault_3d = ImmediateGeometry.new()
+		
+		fault_3d.begin(1, null)
+		for i in range((data[fault].size() / 2) - 1):
+			if i + 1 < data[fault].size() / 2:
+				var A = data[fault]["top" + str(i)]
+				var B = data[fault]["top" + str(i + 1)]
+				fault_3d.add_vertex(A)
+				fault_3d.add_vertex(B)
+				pass
+		for i in range((data[fault].size() / 2) - 1):
+			if i + 1 < data[fault].size() / 2:
+				var A = data[fault]["bot" + str(i)]
+				var B = data[fault]["bot" + str(i + 1)]
+				fault_3d.add_vertex(A)
+				fault_3d.add_vertex(B)
+				pass
+		fault_3d.end()
+		$"3d_fault_parent".add_child(fault_3d)
+		pass
+	
+	var camera = $"3d_fault_parent/Camera"
+	
+	$"3d_fault_parent".remove_child(camera)
+	$"3d_fault_parent".get_child(0).add_child(camera)
+	print($"3d_fault_parent".get_child_count())
+	pass
